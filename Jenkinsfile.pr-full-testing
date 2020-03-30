@@ -1,0 +1,96 @@
+boolean operatorImageExistsInOpenshift = true
+
+pipeline {
+    agent { label 'go'}
+    options {
+        buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '10')
+        timeout(time: 10, unit: 'MINUTES')
+    }
+    environment {
+        
+        WORKING_DIR = "/home/jenkins/go/src/github.com/kiegroup/kogito-cloud-operator/"
+        GOPATH = "/home/jenkins/go"
+        GOCACHE = "/home/jenkins/go/.cache/go-build"
+    }
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                dir ("${WORKING_DIR}") {
+                    deleteDir()
+                }
+            }
+        }
+        stage('Initialize') {
+            steps {
+                println "do init"
+                sh "mkdir -p ${WORKING_DIR} && cd ${WORKSPACE} && cp -Rap * ${WORKING_DIR}"
+                sh "set +x && oc login --token=\$(oc whoami -t) --server=${OPENSHIFT_API} --insecure-skip-tls-verify"
+            }
+        }
+        stage('debug config of full testing trigger') {
+            steps {
+                dir ("${WORKING_DIR}") {
+                    script {
+                        echo "Get status of istag search"
+
+                        // TODO add "set +x &&" to the script
+                        KOGITO_CLOUD_OPERATOR_EXISTS_STATUS = sh (
+                            script: "oc get istag -n openshift kogito-cloud-operator:pr-\$(echo \${GIT_COMMIT} | cut -c1-7)",
+                            returnStatus: true
+                        )
+
+                        echo "KOGITO_CLOUD_OPERATOR_EXISTS_STATUS : ${KOGITO_CLOUD_OPERATOR_EXISTS_STATUS}"
+
+                        EXISTS_STATUS_BOOLEAN = sh (
+                            script: "oc get istag -n openshift kogito-cloud-operator:pr-\$(echo \${GIT_COMMIT} | cut -c1-7)",
+                            returnStatus: true
+                        ) == 0
+
+                        echo "EXISTS_STATUS_BOOLEAN : ${EXISTS_STATUS_BOOLEAN}"
+
+                        
+
+                        if ( EXISTS_STATUS_BOOLEAN ) {
+                            echo "exists"
+                            operatorImageExistsInOpenshift = true
+                        }
+                        else {
+                            echo "not exists"
+                        } 
+
+                        operatorImageExistsInOpenshift = sh (
+                            script: "oc get istag -n openshift kogito-cloud-operator:pr-\$(echo \${GIT_COMMIT} | cut -c1-7)",
+                            returnStatus: true
+                        ) == 0
+
+                        echo "operatorImageExistsInOpenshift"
+                        echo operatorImageExistsInOpenshift.toString()
+                    }
+                }
+            }
+        }
+        stage('debug Full tests') {
+            when {
+                expression {
+                    return operatorImageExistsInOpenshift
+                }
+            }
+            steps {
+                dir ("${WORKING_DIR}") {
+                    script { 
+                        echo "running full tests"
+                    }
+                }
+            }
+
+        }
+        stage('final') {
+            steps {
+                script {
+                    echo "end of pipeline"
+                }
+            }
+        }
+
+    }
+}
