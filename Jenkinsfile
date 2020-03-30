@@ -31,6 +31,27 @@ pipeline {
                     script {
                         println "${currentBuild.buildCauses}"  // -- to get all causes of the build
 
+
+                        // Get all Causes for the current build
+                        def causes = currentBuild.getBuildCauses()
+
+                        println "All causes: "+ causes
+
+                        // Get a specific Cause type if present.
+                        def specificCause = currentBuild.getBuildCauses('com.adobe.jenkins.github_pr_comment_build.GitHubPullRequestCommentCause')
+                        println "Specific cause: " + specificCause
+
+                        def pullRequestCommentCause = currentBuild.rawBuild.getCause(com.adobe.jenkins.github_pr_comment_build.GitHubPullRequestCommentCause)
+                        println "PR Comment cause obj " + pullRequestCommentCause
+                        
+                        if (!specificCause.isEmpty()) {
+                            println specificCause.properties
+                            println specificCause.getCommentUrl()
+                        } else {
+                            println "Not triggered by rebuild comment"
+                        }
+
+
                         //def isStartedByUser = currentBuild.rawBuild.getCause(UserIdCause) != null
                         //def pullRequestComment = currentBuild.rawBuild.getCause(hudson.model.Cause$GitHubPullRequestCommentCause)
                         //this does not work because of https://issues.jenkins-ci.org/browse/JENKINS-28178
