@@ -29,8 +29,3 @@ func HelperLoadBytes(t *testing.T, name string) []byte {
 	}
 	return bytes
 }
-
-// HelperLoadString will load as a string the file contents with the given name in the testdata dir
-func HelperLoadString(t *testing.T, name string) string {
-	return string(HelperLoadBytes(t, name))
-}

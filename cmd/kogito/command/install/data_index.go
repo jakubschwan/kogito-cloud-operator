@@ -19,7 +19,6 @@ import (
 
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/context"
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/deploy"
-	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/message"
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/shared"
 	"github.com/kiegroup/kogito-cloud-operator/pkg/apis/app/v1alpha1"
 	"github.com/kiegroup/kogito-cloud-operator/pkg/client/kubernetes"
@@ -113,8 +112,10 @@ For more information on Kogito Data Index Service see: https://github.com/kiegro
 				i.flags.infinispan.UseKogitoInfra = false
 			}
 			if len(i.flags.kafka.ExternalURI) > 0 {
+				i.flags.kafka.UseKogitoInfra = false
 				log.Infof("kafka-url informed. Kafka will NOT be provisioned for you. Make sure that %s url is accessible from the cluster", i.flags.kafka.ExternalURI)
 			} else if len(i.flags.kafka.Instance) > 0 {
+				i.flags.kafka.UseKogitoInfra = false
 				log.Infof("kafka-instance informed. Kafka will NOT be provisioned for you. Make sure Kafka instance %s is properly deployed in the project. If the Kafka instance is found, Kafka Topics for Data Index service will be deployed in the project if they don't exist already", i.flags.kafka.Instance)
 			} else {
 				i.flags.kafka.UseKogitoInfra = true
@@ -140,7 +141,7 @@ func (i *installDataIndexCommand) InitHook() {
 	i.Parent.AddCommand(i.command)
 	deploy.AddDeployFlags(i.command, &i.flags.CommonFlags)
 
-	i.command.Flags().StringVarP(&i.flags.image, "image", "i", infrastructure.DefaultDataIndexImageNoVersion+infrastructure.GetRuntimeImageVersion(), "Image tag for the Data Index Service, example: quay.io/kiegroup/kogito-data-index:latest")
+	i.command.Flags().StringVarP(&i.flags.image, "image", "i", "", "Image tag for the Data Index Service, example: quay.io/kiegroup/kogito-data-index:latest")
 	i.command.Flags().Int32Var(&i.flags.httpPort, "http-port", framework.DefaultExposedPort, "Default HTTP port which Data Index image will be listening")
 	i.command.Flags().StringVar(&i.flags.kafka.ExternalURI, "kafka-url", "", "The Kafka cluster external URI, example: my-kafka-cluster:9092")
 	i.command.Flags().StringVar(&i.flags.kafka.Instance, "kafka-instance", "", "The Kafka cluster external URI, example: my-kafka-cluster")
@@ -152,30 +153,9 @@ func (i *installDataIndexCommand) InitHook() {
 }
 
 func (i *installDataIndexCommand) Exec(cmd *cobra.Command, args []string) error {
-	log := context.GetDefaultLogger()
 	var err error
 	if i.flags.Project, err = shared.EnsureProject(i.Client, i.flags.Project); err != nil {
 		return err
-	}
-
-	if installed, err := shared.SilentlyInstallOperatorIfNotExists(i.flags.Project, "", i.Client); err != nil {
-		return err
-	} else if !installed {
-		return nil
-	}
-
-	if i.flags.infinispan.UseKogitoInfra {
-		if available, err := infrastructure.IsInfinispanOperatorAvailable(i.Client, i.flags.Project); err != nil {
-			return err
-		} else if !available {
-			return fmt.Errorf("Infinispan Operator is not available in the Project: %s. Please make sure to install it before deploying Data Index without infinispan-url provided ", i.flags.Project)
-		}
-	}
-
-	if i.flags.kafka.UseKogitoInfra {
-		if available := infrastructure.IsStrimziAvailable(i.Client); !available {
-			return fmt.Errorf("Strimzi Operator is not available in the Project: %s. Please make sure to install it before deploying Data Index without Kafka provided ", i.flags.Project)
-		}
 	}
 
 	// If user and password are sent, create a secret to hold them and attach them to the CRD
@@ -231,12 +211,10 @@ func (i *installDataIndexCommand) Exec(cmd *cobra.Command, args []string) error 
 		},
 	}
 
-	if err := kubernetes.ResourceC(i.Client).Create(&kogitoDataIndex); err != nil {
-		return fmt.Errorf(message.DataIndexErrCreating, err)
-	}
-
-	log.Infof(message.DataIndexSuccessfulInstalled, i.flags.Project)
-	log.Infof(message.DataIndexCheckStatus, kogitoDataIndex.Name, i.flags.Project)
-
-	return nil
+	return shared.
+		ServicesInstallationBuilder(i.Client, i.flags.Project).
+		SilentlyInstallOperatorIfNotExists().
+		WarnIfDependenciesNotReady(i.flags.infinispan.UseKogitoInfra, i.flags.kafka.UseKogitoInfra).
+		InstallDataIndex(&kogitoDataIndex).
+		GetError()
 }

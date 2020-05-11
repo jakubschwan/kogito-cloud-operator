@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package message
 
-import (
-	"strconv"
+import "fmt"
+
+var (
+	// JobsServiceErrCreating ...
+	JobsServiceErrCreating = fmt.Sprintf(serviceErrCreating, "Jobs", "%s")
+	// JobsServiceSuccessfulInstalled ...
+	JobsServiceSuccessfulInstalled = fmt.Sprintf(serviceSuccessfulInstalled, "Jobs", "%s")
+	// JobsServiceCheckStatus ...
+	JobsServiceCheckStatus = fmt.Sprintf(serviceCheckStatus, "kogitojobsservice", "%s", "%s")
+	// JobsServiceNotInstalledNoKogitoOperator ...
+	JobsServiceNotInstalledNoKogitoOperator = fmt.Sprintf(serviceNotInstalledNoKogitoOperator, "Jobs Service", "jobs-service")
 )
-
-// MustParseBool parse a boolean string value
-func MustParseBool(value string) bool {
-	val, err := strconv.ParseBool(value)
-	if err != nil {
-		panic(err)
-	}
-	return val
-}

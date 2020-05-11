@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-
+	"github.com/cucumber/messages-go/v10"
 	"github.com/kiegroup/kogito-cloud-operator/test/config"
 	"github.com/kiegroup/kogito-cloud-operator/test/framework"
 )
@@ -31,6 +31,7 @@ type Data struct {
 	StartTime              time.Time
 	KogitoExamplesLocation string
 	ScenarioName           string
+	ScenarioContext        map[string]string
 }
 
 // RegisterAllSteps register all steps available to the test suite
@@ -38,6 +39,7 @@ func (data *Data) RegisterAllSteps(s *godog.Suite) {
 	registerGitSteps(s, data)
 	registerGraphQLSteps(s, data)
 	registerHTTPSteps(s, data)
+	registerInfinispanSteps(s, data)
 	registerKogitoAppSteps(s, data)
 	registerKogitoDataIndexServiceSteps(s, data)
 	registerKogitoInfraSteps(s, data)
@@ -53,13 +55,14 @@ func (data *Data) RegisterAllSteps(s *godog.Suite) {
 }
 
 // BeforeScenario configure the data before a scenario is launched
-func (data *Data) BeforeScenario(s interface{}) {
+func (data *Data) BeforeScenario(pickle *messages.Pickle) {
 	data.StartTime = time.Now()
 	data.Namespace = getNamespaceName()
 	data.KogitoExamplesLocation = createTemporaryFolder()
-	data.ScenarioName = framework.GetScenarioName(s)
+	data.ScenarioName = pickle.GetName()
+	data.ScenarioContext = map[string]string{}
 
-	framework.GetLogger(data.Namespace).Info(fmt.Sprintf("Scenario %s", framework.GetScenarioName(s)))
+	framework.GetLogger(data.Namespace).Info(fmt.Sprintf("Scenario %s", pickle.GetName()))
 	go framework.StartPodLogCollector(data.Namespace)
 }
 
@@ -79,7 +82,7 @@ func createTemporaryFolder() string {
 }
 
 // AfterScenario executes some actions on data after a scenario is finished
-func (data *Data) AfterScenario(s interface{}, err error) {
+func (data *Data) AfterScenario(pickle *messages.Pickle, err error) {
 	framework.OperateOnNamespaceIfExists(data.Namespace, func(namespace string) error {
 		if err := framework.StopPodLogCollector(namespace); err != nil {
 			framework.GetMainLogger().Errorf("Error stopping log collector on namespace %s: %v", namespace, err)
@@ -93,26 +96,35 @@ func (data *Data) AfterScenario(s interface{}, err error) {
 		return nil
 	})
 
-	handleScenarioResult(data, s, err)
-	logScenarioDuration(data, s)
+	handleScenarioResult(data, pickle, err)
+	logScenarioDuration(data)
 	deleteTemporaryExamplesFolder(data)
 }
 
-func logScenarioDuration(data *Data, s interface{}) {
+// ResolveWithScenarioContext replaces all the variables in the string with their values.
+func (data *Data) ResolveWithScenarioContext(str string) string {
+	result := str
+	for name, value := range data.ScenarioContext {
+		result = strings.ReplaceAll(result, "{"+name+"}", value)
+	}
+
+	return result
+}
+
+func logScenarioDuration(data *Data) {
 	endTime := time.Now()
 	duration := endTime.Sub(data.StartTime)
 	framework.GetLogger(data.Namespace).Infof("Scenario duration: %s", duration.String())
 }
 
-func handleScenarioResult(data *Data, s interface{}, err error) {
-	scenarioName := strings.ReplaceAll(framework.GetScenarioName(s), "/", "_")
-	newLogFolderName := fmt.Sprintf("%s - %s", scenarioName, data.Namespace)
+func handleScenarioResult(data *Data, pickle *messages.Pickle, err error) {
+	newLogFolderName := fmt.Sprintf("%s - %s", strings.ReplaceAll(pickle.GetName(), "/", "_"), data.Namespace)
 	if err != nil {
-		framework.GetLogger(data.Namespace).Errorf("Error in scenario '%s': %v", framework.GetScenarioName(s), err)
+		framework.GetLogger(data.Namespace).Errorf("Error in scenario '%s': %v", pickle.GetName(), err)
 
 		newLogFolderName = "error - " + newLogFolderName
 	} else {
-		framework.GetLogger(data.Namespace).Infof("Successful scenario '%s'", scenarioName)
+		framework.GetLogger(data.Namespace).Infof("Successful scenario '%s'", pickle.GetName())
 	}
 	err = framework.RenameLogFolder(data.Namespace, newLogFolderName)
 	if err != nil {

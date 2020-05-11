@@ -16,7 +16,7 @@ package steps
 
 import (
 	"github.com/cucumber/godog"
-	"github.com/cucumber/godog/gherkin"
+	"github.com/cucumber/messages-go/v10"
 	"github.com/kiegroup/kogito-cloud-operator/test/framework"
 )
 
@@ -33,7 +33,7 @@ func registerOpenShiftSteps(s *godog.Suite, data *Data) {
 // Build steps
 func (data *Data) startBuildFromExampleServicePath(buildName, localExamplePath string) error {
 	examplesRepositoryPath := data.KogitoExamplesLocation
-	_, err := framework.ExecuteCommand("oc", "start-build", buildName, "--from-dir="+examplesRepositoryPath+"/"+localExamplePath, "-n", data.Namespace)
+	_, err := framework.CreateCommand("oc", "start-build", buildName, "--from-dir="+examplesRepositoryPath+"/"+localExamplePath, "-n", data.Namespace).WithLoggerContext(data.Namespace).Execute()
 	return err
 }
 
@@ -45,12 +45,12 @@ func (data *Data) buildConfigIsCreatedAfterMinutes(buildConfigName string, timeo
 	return framework.WaitForBuildConfigCreated(data.Namespace, buildConfigName, timeoutInMin)
 }
 
-func (data *Data) buildConfigHasResourcesWithinMinutes(buildConfigName string, timeoutInMin int, dt *gherkin.DataTable) error {
-	resources, err := assist.ParseMap(dt)
+func (data *Data) buildConfigHasResourcesWithinMinutes(buildConfigName string, timeoutInMin int, dt *messages.PickleStepArgument_PickleTable) error {
+	requirements, _, err := parseResourceRequirementsTable(dt)
+
 	if err != nil {
 		return err
 	}
 
-	requirements := framework.ToResourceRequirements(resources["requests"], resources["limits"])
-	return framework.WaitForBuildConfigToHaveResources(data.Namespace, buildConfigName, requirements, timeoutInMin)
+	return framework.WaitForBuildConfigToHaveResources(data.Namespace, buildConfigName, *requirements, timeoutInMin)
 }

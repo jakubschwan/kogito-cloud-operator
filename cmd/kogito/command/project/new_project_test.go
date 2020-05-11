@@ -27,7 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewProject_WhenNewProjectDoesNotExist(t *testing.T) {
+func TestNewProject_WithDataIndex(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
 	ns := t.Name()
 	cli := fmt.Sprintf("new-project --project %s --install-data-index", ns)
 	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
@@ -36,6 +38,62 @@ func TestNewProject_WhenNewProjectDoesNotExist(t *testing.T) {
 	assert.Contains(t, lines, "created")
 	assert.Contains(t, lines, ns)
 	assert.Contains(t, lines, fmt.Sprintf(message.DataIndexSuccessfulInstalled, ns))
+}
+
+func TestNewProject_WithJobsService(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
+	ns := t.Name()
+	cli := fmt.Sprintf("new-project --project %s --install-jobs-service", ns)
+	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
+	lines, _, err := test.ExecuteCli()
+	assert.NoError(t, err)
+	assert.Contains(t, lines, "created")
+	assert.Contains(t, lines, ns)
+	assert.Contains(t, lines, fmt.Sprintf(message.JobsServiceSuccessfulInstalled, ns))
+}
+
+func TestNewProject_WithMgmtConsole(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
+	ns := t.Name()
+	cli := fmt.Sprintf("new-project --project %s --install-mgmt-console", ns)
+	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
+	lines, _, err := test.ExecuteCli()
+	assert.NoError(t, err)
+	assert.Contains(t, lines, "created")
+	assert.Contains(t, lines, ns)
+	assert.Contains(t, lines, fmt.Sprintf(message.MgmtConsoleSuccessfulInstalled, ns))
+}
+
+func TestNewProject_WithAllServices(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
+	ns := t.Name()
+	cli := fmt.Sprintf("new-project --project %s --install-all", ns)
+	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
+	lines, _, err := test.ExecuteCli()
+	assert.NoError(t, err)
+	assert.Contains(t, lines, "created")
+	assert.Contains(t, lines, ns)
+	assert.Contains(t, lines, fmt.Sprintf(message.DataIndexSuccessfulInstalled, ns))
+	assert.Contains(t, lines, fmt.Sprintf(message.JobsServiceSuccessfulInstalled, ns))
+	assert.Contains(t, lines, fmt.Sprintf(message.MgmtConsoleSuccessfulInstalled, ns))
+}
+
+func TestNewProject_WithTwoServices(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
+	ns := t.Name()
+	cli := fmt.Sprintf("new-project --project %s --install-data-index --install-mgmt-console", ns)
+	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
+	lines, _, err := test.ExecuteCli()
+	assert.NoError(t, err)
+	assert.Contains(t, lines, "created")
+	assert.Contains(t, lines, ns)
+	assert.Contains(t, lines, fmt.Sprintf(message.DataIndexSuccessfulInstalled, ns))
+	assert.Contains(t, lines, fmt.Sprintf(message.MgmtConsoleSuccessfulInstalled, ns))
+	assert.NotContains(t, lines, fmt.Sprintf(message.JobsServiceSuccessfulInstalled, ns))
 }
 
 func TestNewProject_WhenNewProjectExist(t *testing.T) {
@@ -49,6 +107,8 @@ func TestNewProject_WhenNewProjectExist(t *testing.T) {
 }
 
 func TestNewProject_WhenTheresNoNamedFlag(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
 	ns := t.Name()
 	cli := fmt.Sprintf("new-project %s", ns)
 	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})
@@ -67,6 +127,8 @@ func TestNewProject_WhenTheresNoName(t *testing.T) {
 }
 
 func TestNewProject_WithoutDataIndex(t *testing.T) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	defer teardown()
 	ns := t.Name()
 	cli := fmt.Sprintf("new-project -n %s ", ns)
 	test.SetupCliTest(cli, context.CommandFactory{BuildCommands: BuildCommands})

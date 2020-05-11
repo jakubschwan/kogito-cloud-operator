@@ -1,4 +1,4 @@
-// Copyright 2019 Red Hat, Inc. and/or its affiliates
+// Copyright 2020 Red Hat, Inc. and/or its affiliates
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,14 @@
 package shared
 
 import (
-	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/context"
-	"go.uber.org/zap"
+	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/test"
+	"os"
+	"testing"
 )
 
-var log *zap.SugaredLogger
-
-func init() {
-	log = context.GetDefaultLogger()
+func TestMain(t *testing.M) {
+	teardown := test.OverrideKubeConfigAndCreateDefaultContext()
+	code := t.Run()
+	teardown()
+	os.Exit(code)
 }

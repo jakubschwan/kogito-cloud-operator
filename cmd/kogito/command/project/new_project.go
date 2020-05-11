@@ -16,20 +16,17 @@ package project
 
 import (
 	"fmt"
+
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/context"
+	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/message"
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/shared"
 	"github.com/kiegroup/kogito-cloud-operator/pkg/client/kubernetes"
 	"github.com/spf13/cobra"
 )
 
-type newProjectFlags struct {
-	project          string
-	installDataIndex bool
-}
-
 type newProjectCommand struct {
 	context.CommandContext
-	flags   newProjectFlags
+	flags   projectFlags
 	command *cobra.Command
 	Parent  *cobra.Command
 }
@@ -71,10 +68,9 @@ func (i *newProjectCommand) RegisterHook() {
 }
 
 func (i *newProjectCommand) InitHook() {
-	i.flags = newProjectFlags{}
+	i.flags = projectFlags{}
 	i.Parent.AddCommand(i.command)
-	i.command.Flags().StringVarP(&i.flags.project, "project", "n", "", "The project project")
-	i.command.Flags().BoolVar(&i.flags.installDataIndex, "install-data-index", false, "Installs the default instance of Data Index being provisioned by the Kogito Operator in the new project")
+	addProjectFlagsToCommand(i.command, &i.flags)
 }
 
 func (i *newProjectCommand) Exec(cmd *cobra.Command, args []string) error {
@@ -89,17 +85,15 @@ func (i *newProjectCommand) Exec(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		config := context.ReadConfig()
-		config.Namespace = ns.Name
-		config.Save()
-		log.Infof("Project '%s' created successfully", ns.Name)
-
-		install := shared.ServicesInstallationBuilder(i.Client, ns.Name).SilentlyInstallOperator()
-		if i.flags.installDataIndex {
-			install.InstallDataIndex()
+		if err := shared.SetCurrentNamespaceToKubeConfig(ns.Name); err != nil {
+			return err
 		}
-		return install.GetError()
+
+		log.Infof(message.ProjectCreatedSuccessfully, ns.Name)
+
+		return handleServicesInstallation(&i.flags, i.Client)
 	}
-	log.Infof("Project '%s' already exists", i.flags.project)
+
+	log.Infof(message.ProjectAlreadyExists, i.flags.project)
 	return nil
 }

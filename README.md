@@ -218,12 +218,12 @@ Example of memory request configuration:
 apiVersion: app.kiegroup.org/v1alpha1
 kind: KogitoApp
 metadata:
-  name: jbpm-quarkus-example
+  name: process-quarkus-example
   namespace: kogito
 spec:
   build:
     gitSource:
-      contextDir: jbpm-quarkus-example
+      contextDir: process-quarkus-example
       uri: 'https://github.com/kiegroup/kogito-examples'
     native: true
     resources:
@@ -235,7 +235,7 @@ spec:
 :warning: Ensure that you have these resources available on your OpenShift nodes when running native builds. Otherwise the S2I build will fail.
 You can check currently allocated and total resources of your nodes using the command `oc describe nodes` invoked by a user with admin rights.
 
-The user can also limit the maximum heap space for the JVM used for a native build. The limitation can be applied by setting the `quarkus.native.native-image-xmx` property in the application.properties file. In such case the build pod will require roughly xmx + 2 GB of memory. The xmx value depends on the complexity of the application, for example for [jbpm-quarkus-example](https://github.com/kiegroup/kogito-examples/tree/master/jbpm-quarkus-example) the xmx value `2g` is enough, resulting in builder pod consuming just up to 4.2 GB of memory.
+The user can also limit the maximum heap space for the JVM used for a native build. The limitation can be applied by setting the `quarkus.native.native-image-xmx` property in the application.properties file. In such case the build pod will require roughly xmx + 2 GB of memory. The xmx value depends on the complexity of the application, for example for [process-quarkus-example](https://github.com/kiegroup/kogito-examples/tree/master/process-quarkus-example) the xmx value `2g` is enough, resulting in builder pod consuming just up to 4.2 GB of memory.
 
 The user can also set resource limits for a native build pod. In that case 80% of the memory limit is used for heap space in the JVM responsible for native build. If the computed heap space limit for the JVM is less than 1024 MB then all the memory from resource limits is used.
 
@@ -244,12 +244,12 @@ Example of memory limit configuration:
 apiVersion: app.kiegroup.org/v1alpha1
 kind: KogitoApp
 metadata:
-  name: jbpm-quarkus-example
+  name: process-quarkus-example
   namespace: kogito
 spec:
   build:
     gitSource:
-      contextDir: jbpm-quarkus-example
+      contextDir: process-quarkus-example
       uri: 'https://github.com/kiegroup/kogito-examples'
     native: true
     resources:
@@ -274,7 +274,7 @@ The name of the `configMap` consists of the name of the Kogito service and the s
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: jbpm-quarkus-example-properties
+  name: process-quarkus-example-properties
 data:
   application.properties : |-
     dummy1=dummy1
@@ -584,7 +584,7 @@ You should be able to see the Management Console pod up and running in a couple 
 $ oc get kogitomgtmconsole
 
 NAME                 REPLICAS   IMAGE                                                                      ENDPOINT
-management-console   1          quay.io/kiegroup/kogito-management-console:0.10.0-rc1 (Internal Registry)   http://management-console-kogito-1445.apps-crc.testing
+management-console   1          quay.io/kiegroup/kogito-management-console:0.11.0-rc1 (Internal Registry)   http://management-console-kogito-1445.apps-crc.testing
 ```
 
 The `ENDPOINT` column contains the URL that you need to access the application.
@@ -911,7 +911,7 @@ If this happens, please uninstall AMQ Streams and install Strimzi manually since
 To enable Kafka installation during deployment of your service, use the following Kogito CLI command:
 
 ```bash
-$ kogito deploy jbpm-quarkus-example https://github.com/kiegroup/kogito-examples --context-dir=jbpm-quarkus-example --enable-events"  
+$ kogito deploy process-quarkus-example https://github.com/kiegroup/kogito-examples --context-dir=process-quarkus-example --enable-events"  
 ```
 
 Or using the custom resource (CR) yaml file:
@@ -920,7 +920,7 @@ Or using the custom resource (CR) yaml file:
 apiVersion: app.kiegroup.org/v1alpha1
 kind: KogitoApp
 metadata:
-  name: jbpm-quarkus-example
+  name: process-quarkus-example
 spec:
   enableEvents: true
   build:
@@ -929,7 +929,7 @@ spec:
       value: -Pevents
     gitSource:
       uri: https://github.com/mswiderski/kogito-quickstarts
-      contextDir: jbpm-quarkus-example
+      contextDir: process-quarkus-example
 ```
 
 The flag `--enable-events` in the CLI and the attribute `spec.enableEvents: true` in the CR tells to the operator
@@ -947,7 +947,7 @@ Also, if the container has any environment variable with the suffix `_BOOTSTRAP_
 value of `KAFKA_BOOTSTRAP_SERVERS` variable as well. For example, by running:
  
 ```bash
-$ kogito deploy jbpm-quarkus-example https://github.com/kiegroup/kogito-examples --context-dir=jbpm-quarkus-example --enable-events \
+$ kogito deploy process-quarkus-example https://github.com/kiegroup/kogito-examples --context-dir=process-quarkus-example --enable-events \
 --build-env MAVEN_ARGS_APPEND="-Pevents" \
 -e MP_MESSAGING_INCOMING_TRAVELLERS_BOOTSTRAP_SERVERS -e MP_MESSAGING_OUTGOING_PROCESSEDTRAVELLERS_BOOTSTRAP_SERVERS"  
 ```
@@ -992,7 +992,7 @@ account to create an application repository.
 
 Follow the steps below:
 
-1. Run `make prepare-olm version=0.10.0`. Bear in mind that if there's different versions
+1. Run `make prepare-olm version=0.11.0`. Bear in mind that if there's different versions
 in the `deploy/olm-catalog/kogito-operator/kogito-operator.package.yaml` file, every CSV must 
 be included in the output folder. At this time, the script did not copy previous CSV versions to the 
 output folder, so it must be copied manually.
@@ -1018,7 +1018,7 @@ $ AUTH_TOKEN=$(curl -sH "Content-Type: application/json" -XPOST https://quay.io/
 $ export OPERATOR_DIR=build/_output/operatorhub/
 $ export QUAY_NAMESPACE=kiegroup # should be different in your environment
 $ export PACKAGE_NAME=kogito-operator
-$ export PACKAGE_VERSION=0.10.0
+$ export PACKAGE_VERSION=0.11.0
 $ export TOKEN=$AUTH_TOKEN
 ```
 
@@ -1071,6 +1071,11 @@ $ make run-tests [key=value]*
 
 You can set those optional keys:
 
+<!--- tests configuration -->
+- `feature` is a specific feature you want to run.  
+  If you define a relative path, this has to be based on the "test" folder as the run is happening there.
+  *Default are all enabled features from 'test/features' folder*  
+  Example: feature=features/operator/deploy_quarkus_service.feature
 - `tags` to run only specific scenarios. It is using tags filtering.  
   *Scenarios with '@disabled' tag are always ignored.*  
   Expression can be:
@@ -1080,39 +1085,58 @@ You can set those optional keys:
     - "@wip,@undone": run wip or undone scenarios
 - `concurrent` is the number of concurrent tests to be ran.  
   *Default is 1.*
-- `feature` is a specific feature you want to run.  
-  If you define a relative path, this has to be based on the "test" folder as the run is happening there.
-  *Default are all enabled features from 'test/features' folder*  
-  Example: feature=features/operator/deploy_quarkus_service.feature
 - `timeout` sets the timeout in minutes for the overall run.  
   *Default is 240 minutes.*
 - `debug` to be set to true to activate debug mode.  
   *Default is false.*
+- `load_factor` sets the tests load factor. Useful for the tests to take into account that the cluster can be overloaded, for example for the calculation of timeouts.  
+  *Default is 1.*
 - `local` to be set to true if running tests in local.  
   *Default is false.*
 - `ci` to be set if running tests with CI. Give CI name. 
 - `cr_deployment_only` to be set if you don't have a CLI built. Default will deploy applications via the CLI.
 - `load_default_config` sets to true if you want to directly use the default test config (from test/.default_config)
+<!--- operator information -->
 - `operator_image` is the Operator image full name.  
   *Default: operator_image=quay.io/kiegroup/kogito-cloud-operator*.
 - `operator_tag` is the Operator image tag.  
   *Default is the current version*.
-- `cli_path` set the built CLI path.  
-  *Default is ./build/_output/bin/kogito*.
+<!--- files/binaries -->
 - `deploy_uri` set operator *deploy* folder.  
   *Default is ./deploy*.
-- `services_image_version` sets the services (jobs-service, data-index, ...) image version. Default is current operator version.
+- `cli_path` set the built CLI path.  
+  *Default is ./build/_output/bin/kogito*.
+<!--- runtime -->
+- `services_image_version` sets the services (jobs-service, data-index, ...) image version.
+- `services_image_namespace` sets the services (jobs-service, data-index, ...) image namespace.
+- `services_image_registry` sets the services (jobs-service, data-index, ...) image registry.
 - `data_index_image_tag` sets the Kogito Data Index image tag ('services_image_version' is ignored)
 - `jobs_service_image_tag` sets the Kogito Jobs Service image tag ('services_image_version' is ignored)
 - `management_console_image_tag` sets the Kogito Management Console image tag ('services_image_version' is ignored)
+<!--- build -->
 - `maven_mirror` is the Maven mirror URL.  
   This is helpful when you need to speed up the build time by referring to a closer Maven repository.
-- `build_image_version` sets the build image version. Default is current operator version.
+- `build_image_version` sets the build image version.
+- `build_image_namespace` sets the build image namespace.
+- `build_image_registry` sets the build image registry.
 - `build_s2i_image_tag` sets the build S2I image full tag.
 - `build_runtime_image_tag` sets the build Runtime image full tag.
+<!--- examples repository -->
 - `examples_uri` sets the URI for the kogito-examples repository.  
   *Default is https://github.com/kiegroup/kogito-examples*.
 - `examples_ref` sets the branch for the kogito-examples repository.
+<!--- development options -->
+- `show_scenarios` sets to true to display scenarios which will be executed.  
+  *Default is false.*
+- `show_steps` sets to true to display scenarios and their steps which will be executed.  
+  *Default is false.*
+- `dry_run` sets to true to execute a dry run of the tests, disable crds updates and display the scenarios which will be executed.  
+  *Default is false.*
+- `keep_namespace` sets to true to not delete namespace(s) after scenario run (WARNING: can be resources consuming ...).  
+  *Default is false.*
+- `disabled_crds_update` sets to true to disable the update of CRDs.  
+  *Default is false.*
+- `namespace_name` to specify name of the namespace which will be used for scenario execution (intended for development purposes).
 
 Logs will be shown on the Terminal.
 
@@ -1126,8 +1150,8 @@ make run-tests 2>&1 | tee log.out
 
 ```
 $ make
-$ docker tag quay.io/kiegroup/kogito-cloud-operator:0.10.0 quay.io/{USERNAME}/kogito-cloud-operator:0.10.0 
-$ docker push quay.io/{USERNAME}/kogito-cloud-operator:0.10.0
+$ docker tag quay.io/kiegroup/kogito-cloud-operator:0.11.0 quay.io/{USERNAME}/kogito-cloud-operator:0.11.0 
+$ docker push quay.io/{USERNAME}/kogito-cloud-operator:0.11.0
 $ make run-tests operator_image=quay.io/{USERNAME}/kogito-cloud-operator
 ```
 

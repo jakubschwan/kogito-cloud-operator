@@ -96,12 +96,16 @@ deploy_uri=
 cli_path=
 # runtime
 services_image_version=
+services_image_namespace=
+services_image_registry=
 data_index_image_tag=
 jobs_service_image_tag=
 management_console_image_tag=
 # build
 maven_mirror=
 build_image_version=
+build_image_namespace=
+build_image_registry=
 build_s2i_image_tag=
 build_runtime_image_tag=
 # examples repository
@@ -109,6 +113,7 @@ examples_uri=
 examples_ref=
 # dev options
 show_scenarios=false
+show_steps=false
 dry_run=false
 keep_namespace=false
 disabled_crds_update=false
@@ -121,6 +126,7 @@ run-tests:
 	&& if [ "${local}" = "true" ]; then opts+=("--local"); fi \
 	&& if [ "${cr_deployment_only}" = "true" ]; then opts+=("--cr_deployment_only"); fi \
 	&& if [ "${show_scenarios}" = "true" ]; then opts+=("--show_scenarios"); fi \
+	&& if [ "${show_steps}" = "true" ]; then opts+=("--show_steps"); fi \
 	&& if [ "${dry_run}" = "true" ]; then opts+=("--dry_run"); fi \
 	&& if [ "${keep_namespace}" = "true" ]; then opts+=("--keep_namespace"); fi \
 	&& if [ "${disabled_crds_update}" = "true" ]; then opts+=("--disabled_crds_update"); fi \
@@ -137,11 +143,15 @@ run-tests:
 		--deploy_uri ${deploy_uri} \
 		--cli_path ${cli_path} \
 		--services_image_version ${services_image_version} \
+		--services_image_namespace ${services_image_namespace} \
+		--services_image_registry ${services_image_registry} \
 		--data_index_image_tag ${data_index_image_tag} \
 		--jobs_service_image_tag ${jobs_service_image_tag} \
 		--management_console_image_tag ${management_console_image_tag} \
 		--maven_mirror $(maven_mirror) \
 		--build_image_version ${build_image_version} \
+		--build_image_namespace ${build_image_namespace} \
+		--build_image_registry ${build_image_registry} \
 		--build_s2i_image_tag ${build_s2i_image_tag} \
 		--build_runtime_image_tag ${build_runtime_image_tag} \
 		--examples_uri ${examples_uri} \

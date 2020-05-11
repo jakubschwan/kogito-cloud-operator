@@ -42,7 +42,7 @@ function usage(){
   printf "\n--debug\n\tRun in debug mode."
   printf "\n--smoke\n\tFilter to run only the tests tagged with '@smoke'."
   printf "\n--performance\n\tFilter to run only the tests tagged with '@performance'. If not provided and the tag itself is not specified, these tests will be ignored."
-  printf "\n--load_factor {INT_VALUE}\n\tSet the tests load factor. Useful for the tests to take into account that the cluster can be overloaded, for example for the calculation of timouts. Default value is 1."
+  printf "\n--load_factor {INT_VALUE}\n\tSet the tests load factor. Useful for the tests to take into account that the cluster can be overloaded, for example for the calculation of timeouts. Default value is 1."
   printf "\n--local\n\tSpecify whether you run test in local."
   printf "\n--ci {CI_NAME}\n\tSpecify whether you run test with ci, give also the name of the CI."
   printf "\n--cr_deployment_only\n\tUse this option if you have no CLI to test against. It will use only direct CR deployments."
@@ -57,14 +57,18 @@ function usage(){
   printf "\n--cli_path {PATH}\n\tPath to built CLI to test. Default is local built one."
 
   # runtime
-  printf "\n--services_image_version {VERSION}\n\tSet the services image version. Default to current operator version"
+  printf "\n--services_image_version {VERSION}\n\tSet the services image version."
+  printf "\n--services_image_namespace {NAMESPACE}\n\tSet the services image namespace."
+  printf "\n--services_image_registry {REGISTRY}\n\tSet the services image registry."
   printf "\n--data_index_image_tag {IMAGE_TAG}\n\tSet the Kogito Data Index image tag ('services_image_version' is ignored)"
   printf "\n--jobs_service_image_tag {IMAGE_TAG}\n\tSet the Kogito Jobs Service image tag ('services_image_version' is ignored)"
   printf "\n--management_console_image_tag {IMAGE_TAG}\n\tSet the Kogito Management Console image tag ('services_image_version' is ignored)"
 
   # build
   printf "\n--maven_mirror {URI}\n\tMaven mirror url to be used when building app in the tests."
-  printf "\n--build_image_version {VERSION}\n\tSet the build image version. Default to current operator version"
+  printf "\n--build_image_version {VERSION}\n\tSet the build image version."
+  printf "\n--build_image_namespace {NAMESPACE}\n\tSet the build image namespace."
+  printf "\n--build_image_registry {REGISTRY}\n\tSet the build image registry."
   printf "\n--build_image_tag {TAG}\n\tSet the build image full tag."
   printf "\n--build_s2i_image_tag {TAG}\n\tSet the S2I build image full tag."
   printf "\n--build_runtime_image_tag {NAME}\n\tSet the Runtime build image full tag."
@@ -75,9 +79,10 @@ function usage(){
 
   # dev options
   printf "\n--show_scenarios\n\tDisplay scenarios which will be executed."
-  printf "\n--dry_run\n\tExecute a dry run of the tests, disabled crds updates and display the scenarios which would be executed."
+  printf "\n--show_steps\n\tDisplay scenarios and their steps which will be executed."
+  printf "\n--dry_run\n\tExecute a dry run of the tests, disable crds updates and display the scenarios which would be executed."
   printf "\n--keep_namespace\n\tDo not delete namespace(s) after scenario run (WARNING: can be resources consuming ...)."
-  printf "\n--disabled_crds_update\n\tDisabled the update of CRDs."
+  printf "\n--disabled_crds_update\n\tDisable the update of CRDs."
   printf "\n--namespace_name\n\tSpecify name of the namespace which will be used for scenario execution (intended for development purposes)."
   printf "\n"
 }
@@ -214,6 +219,14 @@ case $1 in
     shift
     if addParamKeyValueIfAccepted "--tests.services-image-version" ${1}; then shift; fi
   ;;
+  --services_image_namespace)
+    shift
+    if addParamKeyValueIfAccepted "--tests.services-image-namespace" ${1}; then shift; fi
+  ;;
+  --services_image_registry)
+    shift
+    if addParamKeyValueIfAccepted "--tests.services-image-registry" ${1}; then shift; fi
+  ;;
   --data_index_image_tag)
     shift
     if addParamKeyValueIfAccepted "--tests.data-index-image-tag" ${1}; then shift; fi
@@ -235,6 +248,14 @@ case $1 in
   --build_image_version)
     shift
     if addParamKeyValueIfAccepted "--tests.build-image-version" ${1}; then shift; fi
+  ;;
+  --build_image_namespace)
+    shift
+    if addParamKeyValueIfAccepted "--tests.build-image-namespace" ${1}; then shift; fi
+  ;;
+  --build_image_registry)
+    shift
+    if addParamKeyValueIfAccepted "--tests.build-image-registry" ${1}; then shift; fi
   ;;
   --build_s2i_image_tag)
     shift
@@ -258,6 +279,10 @@ case $1 in
   # dev options
   --show_scenarios)
     addParam "--tests.show-scenarios"
+    shift
+  ;;
+  --show_steps)
+    addParam "--tests.show-steps"
     shift
   ;;
   --dry_run)

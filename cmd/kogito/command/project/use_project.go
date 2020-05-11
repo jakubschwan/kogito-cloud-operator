@@ -16,21 +16,18 @@ package project
 
 import (
 	"fmt"
+
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/context"
+	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/message"
 	"github.com/kiegroup/kogito-cloud-operator/cmd/kogito/command/shared"
 
 	"github.com/kiegroup/kogito-cloud-operator/pkg/client/kubernetes"
 	"github.com/spf13/cobra"
 )
 
-type useProjectFlags struct {
-	project          string
-	installDataIndex bool
-}
-
 type useProjectCommand struct {
 	context.CommandContext
-	flags   useProjectFlags
+	flags   projectFlags
 	command *cobra.Command
 	Parent  *cobra.Command
 }
@@ -62,12 +59,12 @@ func (i *useProjectCommand) RegisterHook() {
 			if len(i.flags.project) == 0 {
 				if len(args) == 0 {
 					log := context.GetDefaultLogger()
-					config := context.ReadConfig()
-					if len(config.Namespace) == 0 {
-						return fmt.Errorf("No Project set in the context. Use 'kogito new-project NAME' to create a new Project")
+					namespace := shared.GetCurrentNamespaceFromKubeConfig()
+					if len(namespace) == 0 {
+						return fmt.Errorf(message.ProjectCantIdentifyContext)
 					}
-					log.Debugf("Project in the context is '%s'. Use 'kogito deploy-service NAME SOURCE' to deploy a new Kogito Service.", config.Namespace)
-					i.flags.project = config.Namespace
+					log.Debugf(message.ProjectCurrentContextInfo, namespace)
+					i.flags.project = namespace
 					return nil
 				}
 				i.flags.project = args[0]
@@ -78,29 +75,24 @@ func (i *useProjectCommand) RegisterHook() {
 }
 
 func (i *useProjectCommand) InitHook() {
-	i.flags = useProjectFlags{}
+	i.flags = projectFlags{}
 	i.Parent.AddCommand(i.command)
-	i.command.Flags().StringVarP(&i.flags.project, "project", "n", "", "The project project")
-	i.command.Flags().BoolVar(&i.flags.installDataIndex, "install-data-index", false, "Installs the default instance of Data Index being provisioned by the Kogito Operator in the project")
+	addProjectFlagsToCommand(i.command, &i.flags)
 }
 
 func (i *useProjectCommand) Exec(cmd *cobra.Command, args []string) error {
 	log := context.GetDefaultLogger()
 	if ns, err := kubernetes.NamespaceC(i.Client).Fetch(i.flags.project); err != nil {
-		return fmt.Errorf("Error while trying to look for the project. Are you logged in? %s ", err)
+		return fmt.Errorf(message.ProjectErrorGetProject, err)
 	} else if ns != nil {
-		config := context.ReadConfig()
-		config.Namespace = i.flags.project
-		config.Save()
-
-		log.Infof("Project set to '%s'", i.flags.project)
-
-		install := shared.ServicesInstallationBuilder(i.Client, ns.Name).SilentlyInstallOperator()
-		if i.flags.installDataIndex {
-			install.InstallDataIndex()
+		if err := shared.SetCurrentNamespaceToKubeConfig(i.flags.project); err != nil {
+			return err
 		}
-		return install.GetError()
+
+		log.Infof(message.ProjectSet, i.flags.project)
+
+		return handleServicesInstallation(&i.flags, i.Client)
 	}
 
-	return fmt.Errorf("Project '%s' not found. Try running 'kogito new-project %s' to create your Project first ", i.flags.project, i.flags.project)
+	return fmt.Errorf(message.ProjectNotFound, i.flags.project, i.flags.project)
 }

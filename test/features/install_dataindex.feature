@@ -20,34 +20,24 @@ Feature: Kogito Data Index
 
 #####
 
-  @events
-  @persistence
-  Scenario Outline: Process instance events are stored in Data Index
-    Given Install Kogito Data Index with 1 replicas
-    And Deploy quarkus example service "jbpm-quarkus-example" with native <native> and persistence and events
-    And Kogito application "jbpm-quarkus-example" has 1 pods running within <minutes> minutes
-    And HTTP GET request on service "jbpm-quarkus-example" with path "orders" is successful within 3 minutes
+  @externalcomponent
+  @infinispan
+  Scenario: Install Kogito Data Index with persistence using external Infinispan
+    Given Infinispan instance "external-infinispan" is deployed with configuration:
+      | username | developer |
+      | password | mypass |
 
-    When HTTP POST request on service "jbpm-quarkus-example" with path "orders" and body:
-      """json
-      {
-        "approver" : "john", 
-        "order" : {
-          "orderNumber" : "12345", 
-          "shipped" : false
-        }
+    When Install Kogito Data Index with 1 replicas with configuration:
+      | infinispan | username | developer                 |
+      | infinispan | password | mypass                    |
+      | infinispan | uri      | external-infinispan:11222 |
+
+    Then Kogito Data Index has 1 pods running within 10 minutes
+    And GraphQL request on service "data-index" is successful within 2 minutes with path "graphql" and query:
+    """
+    {
+      ProcessInstances{
+        id
       }
-      """
-
-    Then GraphQL request on Data Index service returns ProcessInstances processName "orders" within 2 minutes
-
-    Examples: Non native
-      | native   | minutes |
-      | disabled | 10      |
-
-    # Disabled because of https://issues.redhat.com/browse/KOGITO-1405
-    @disabled
-    @native
-    Examples: Native
-      | native  | minutes |
-      | enabled | 20      |
+    }
+    """
